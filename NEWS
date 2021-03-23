@@ -1,0 +1,8 @@
+Changes in version 0.99.1 (2021-03-22)
++ Fixed DESCRIPTION format
++ Fixed a bug in the conversion from TEME to ECEF frames of reference
++ Added conversion to geodesic latitude, longitude and altitude
+
+Changes in version 0.99.0 (2021-03-21)
++ First version
++ Submitted to CRAN
