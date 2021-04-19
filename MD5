@@ -1,4 +1,4 @@
-5c43eff720256e6791822365e4bd3efd *DESCRIPTION
+c24256d78e32e430d1a3ef1a7dd7ea05 *DESCRIPTION
 4fbea47ffd369991d446501d854fe82e *NAMESPACE
 5b21f19c8c39ec871a4cac63922d0005 *NEWS
 c923e067a49746cc84b9680f1c222407 *R/auxiliaryFunctions.R
@@ -6,10 +6,10 @@ b2613a908b8ed0825b3526ae538f2260 *R/checks.R
 c221977c74a1b657b7ab8db3773e9a5c *R/constants.R
 b652466d6e77e0f1c214067bc7545b7f *R/coordinatesTransformations.R
 48ce210504c18cff98cd20537c8a081d *R/models.R
-e6c94af19f4a38ec2716d30d7f6c852a *build/vignette.rds
+fa4fd4422e6e71ab8c6b7813b1960ae2 *build/vignette.rds
 38a52934d6975071768c301c2b555ceb *inst/doc/asteRisk.R
-e5a26f8c1db19970d7b473754d5eb501 *inst/doc/asteRisk.Rmd
-d31f2d789bbb8898276f80f8ab79ab31 *inst/doc/asteRisk.html
+7b97c0dd616773dbd1ecd56d803f759e *inst/doc/asteRisk.Rmd
+708e7ab6c2fe2f3ebc76ba0e1baf8fa5 *inst/doc/asteRisk.html
 c29e377ce512ebeceb17fd11d3d54b7e *inst/testTLE.txt
 a28b9ee0302eb25928e79859bc1de163 *inst/unitTests/test_all.R
 f23e7eb8dfd0dcc39195675b95b661e7 *man/ECEFtoLATLON.Rd
@@ -21,6 +21,6 @@ f23e7eb8dfd0dcc39195675b95b661e7 *man/ECEFtoLATLON.Rd
 8af269317b5f0a155fc65396c7daa303 *man/sgdp4.Rd
 8ecfe2ac0dda36301bc879f494e21f36 *man/sgp4.Rd
 6478a9673f2878afafbbd5ccd8b8ffc5 *tests/runTests.R
-e5a26f8c1db19970d7b473754d5eb501 *vignettes/asteRisk.Rmd
+7b97c0dd616773dbd1ecd56d803f759e *vignettes/asteRisk.Rmd
 9976250a2773247126c230e28d45049d *vignettes/mystyle.css
 3974273036b6f427339e2a8cc4307104 *vignettes/template.csl
