@@ -1,5 +1,18 @@
 ## ----setup, echo=FALSE--------------------------------------------------------
 knitr::opts_chunk$set(message=FALSE, fig.path='figures/')
+hasData <- requireNamespace("asteRiskData", quietly = TRUE)
+if (!hasData) {                                                                     
+  evaluateExtraChunks <- FALSE                                             
+  msg <- strwrap("Note: some examples in this vignette require that the
+                 `asteRiskData` package be installed. The system
+                  currently running this vignette does not have that package
+                  installed, so code examples will not be evaluated.")
+  msg <- paste(msg, collapse="\n")
+  message(msg)                                                                    
+} else {
+  evaluateExtraChunks <- TRUE
+  library(asteRiskData)
+}
 
 ## ----tidy = TRUE, eval = FALSE------------------------------------------------
 #  install.packages("asteRisk")
@@ -127,7 +140,7 @@ geodetic_matrix <- matrix(nrow=nrow(results_position_matrix), ncol=3)
 
 for(i in 1:nrow(geodetic_matrix)) {
     new_dateTime <- as.character(as.POSIXct(molniya$dateTime, tz="UTC") + 60*targetTimes[i])
-    new_geodetic <- TEMEtoLATLON(results_position_matrix[i, 1:3],
+    new_geodetic <- TEMEtoLATLON(results_position_matrix[i, 1:3]*1000,
                                  new_dateTime)
     geodetic_matrix[i,] <- new_geodetic
 }
@@ -146,4 +159,70 @@ ggmap(get_map(c(left=-180, right=180, bottom=-80, top=80))) +
                na.rm=TRUE) +
   geom_point(data=as.data.frame(geodetic_matrix), aes(x=longitude, y=latitude), 
              color="blue", size=0.3, alpha=0.8)
+
+## ----tidy = TRUE, eval = evaluateExtraChunks----------------------------------
+# The HPOP requires as input the satellite mass, the effective areas subjected
+# to solar radiation pressure and atmospheric drag, and the drag and
+# reflectivity coefficients. 
+# The mass and cross-section of Molniya satellites are approximately 1600 kg and
+# 15 m2, respectively. We will use the cross-section to approximate the
+# effective areafor both atmospheric drag and radiation pressure.
+# Regarding the drag and reflectivity coefficients, while their values vary
+# for each satellite and orbit, 2.2 and 1.2 respectively can be used as
+# approximations.
+
+molniyaMass <- 1600
+molniyaCrossSection <- 15
+molniyaCd <- 2.2
+molniyaCr <- 1.2
+
+# As initial conditions, we will use the initial conditions provided in the
+# same TLE for MOLNIYA 1-83 used previously for the SGP4/SDP4 propagator.
+# We first need to calculate the initial position and velocity in the GCRF
+# ECI frame of reference from the provided orbital elements. 
+# As an approximation, we will use the results obtained for t = 0 with the
+# SGP4/SDP4 propagator. We convert those into the GCRF frame of reference.
+# It should be noted that such an approximation introduces an error due to
+# a mismatch between the position derivative calculated at each propagation
+# point through SGP4/SDP4 and the actual velocity of the satellite.
+
+GCRF_coordinates <- TEMEtoGCRF(results_position_matrix[1,1:3],
+                               results_velocity_matrix[1,1:3], 
+                               molniya$dateTime)
+
+initialPosition <- GCRF_coordinates$position*1000
+initialVelocity <- GCRF_coordinates$velocity*1000
+
+# Let´s use the HPOP to calculate the position each 2 minutes during a period
+# of 3 hours
+
+targetTimes <- seq(0, 10800, by=120)
+
+hpop_results <- hpop(initialPosition, initialVelocity, molniya$dateTime,
+                     targetTimes, molniyaMass, molniyaCrossSection,
+                     molniyaCrossSection, molniyaCr, molniyaCd)
+
+# Now we can calculate and plot the corresponding geodetic coordinates
+
+geodetic_matrix_hpop <- matrix(nrow=nrow(hpop_results), ncol=3)
+
+for(i in 1:nrow(geodetic_matrix_hpop)) {
+    new_dateTime <- as.character(as.POSIXct(molniya$dateTime, tz="UTC") + targetTimes[i])
+    new_geodetic <- GCRFtoLATLON(hpop_results[i, 2:4], new_dateTime)
+    geodetic_matrix_hpop[i,] <- new_geodetic
+}
+
+colnames(geodetic_matrix_hpop) <- c("latitude", "longitude", "altitude")
+
+library(ggmap)
+
+ggmap(get_map(c(left=-180, right=180, bottom=-80, top=80))) +
+  geom_segment(data=as.data.frame(geodetic_matrix_hpop), 
+               aes(x=longitude, y=latitude, 
+                   xend=c(tail(longitude, n=-1), NA), 
+                   yend=c(tail(latitude, n=-1), NA)), 
+               na.rm=TRUE) +
+  geom_point(data=as.data.frame(geodetic_matrix_hpop), aes(x=longitude, y=latitude), 
+             color="blue", size=0.3, alpha=0.8)
+
 
