@@ -1,45 +1,12 @@
-MJday <- function(year, month, day, hour=0, min=0, sec=0) {
-    y <- year
-    m <- month
-    b <- 0
-    c <- 0
-    if (m <= 2) {
-        y <- y -1
-        m <- m + 12
-    }
-    if (y < 0) {
-        c <- -0.75
-    }
-    if (year < 1582) {
-        # if statement only for subsequent conditionals. TODO CHANGE
-    } else if (year > 1582) {
-        a <- trunc(y/100)
-        b <- 2 - a + floor(a / 4)
-    } else if (month < 10) {
-        # TODO CHANGE.
-    } else if (month > 10) { ## TODO VERIFY introduction of gregorian in 1582
-        a <- trunc(y/100)
-        b <- 2 - a + floor(a / 4)
-    } else if (day <= 4) {
-        # TODO CHANGE
-    } else if (day > 14) {
-        a <- trunc(y/100)
-        b <- 2 - a + floor(a / 4)
-    } else {
-        stop("Please enter a valid calendar date")
-    }
-    jd <- trunc(365.25*y + c) + trunc(30.6001 * (m+1))
-    jd <- jd + day + b + 1720994.5
-    jd <- jd + (hour+min/60+sec/3600)/24
-    Mjd <- jd - 2400000.5
-    return(Mjd)
-}
-
-
 IERS <- function(eop,Mjd_UTC,interp="n") {
     if(interp == "l") {
         mjd <- floor(Mjd_UTC)
         i <- which(mjd == eop[, 4])[1]
+        if(is.na(i)) {
+            warning(strwrap("No Earth Orientation Parameters found for the
+                            specified date. Try to obtain latest space data
+                            by running getLatestSpaceData()"))
+        }
         preeop <- as.numeric(eop[i, ])
         nexteop <- as.numeric(eop[i+1, ])
         mfme <- 1440*(Mjd_UTC - floor(Mjd_UTC))
@@ -60,22 +27,22 @@ IERS <- function(eop,Mjd_UTC,interp="n") {
         y_pole <- y_pole/const_Arcs  # Pole coordinate (rad)
         dpsi <- dpsi/const_Arcs
         deps <- deps/const_Arcs
-        dx_pole <- dx_pole/const_Arcs  # Pole velocity? (rad)
-        dy_pole <- dy_pole/const_Arcs  # Pole velocity? (rad)
+        dx_pole <- dx_pole/const_Arcs  # Pole velocity (rad)
+        dy_pole <- dy_pole/const_Arcs  # Pole velocity (rad)
     } else if(interp == "n") {
         mjd = (floor(Mjd_UTC))
         i <- which(mjd == eop[, 4])[1]
         eop <- as.numeric(eop[i, ])
-        # setting IERS Earth rotation parameters 
-        # (UT1-UTC [s], TAI-UTC [s], x ["], y ["])
+        # IERS Earth rotation parameters 
+        # (UT1-UTC in s, TAI-UTC in s, x in rads, y in rads)
         x_pole <- eop[5]/const_Arcs # Pole coordinate (rad)
         y_pole <- eop[6]/const_Arcs # Pole coordinate (rad)
         UT1_UTC <- eop[7] # UT1-UTC time difference (s)
         LOD <- eop[8] # Length of day (s)
         dpsi <- eop[9]/const_Arcs
         deps <- eop[10]/const_Arcs
-        dx_pole <- eop[11]/const_Arcs # Pole velocity? (rad)
-        dy_pole <- eop[12]/const_Arcs # Pole velocity? (rad)
+        dx_pole <- eop[11]/const_Arcs # Pole velocity (rad)
+        dy_pole <- eop[12]/const_Arcs # Pole velocity (rad)
         TAI_UTC <- eop[13] # TAI-UTC time difference (s)
     }
     return(list(
@@ -219,15 +186,15 @@ ECItoECEF <- function(MJD_UTC, Y0) {
 }
 
 Mjday_TDB <- function(Mjd_TT) {
-    # Given Modified julian date (TT), compute Modified julian date (TDB)
-    T_TT <- (Mjd_TT - 51544.5)/36525
-    Mjd_TDB <- Mjd_TT + ( 0.001658*sin(628.3076*T_TT +6.2401)+
-                              0.000022*sin(575.3385*T_TT+4.2970)+
-                              0.000014*sin(1256.6152*T_TT + 6.1969)+
-                              0.000005*sin(606.9777*T_TT+4.0212)+  
-                              0.000005*sin(52.9691*T_TT+0.4444) +   
-                              0.000002*sin(21.3299*T_TT+5.5431)+   
-                              0.000010*sin(628.3076*T_TT+4.2490) )/86400
+    # Given Modified julian date (TT compatible), compute Modified julian date (TDB compatible)
+    T_TT <- (Mjd_TT - 51544.5)/36525 # Julian centuries in TT
+    Mjd_TDB <- Mjd_TT + ( 0.001658 * sin(628.3076 * T_TT + 6.2401) +
+                              0.000022 * sin(575.3385 * T_TT + 4.2970) +
+                              0.000014 * sin(1256.6152 * T_TT + 6.1969) +
+                              0.000005 * sin(606.9777 * T_TT + 4.0212)+  
+                              0.000005 * sin(52.9691 * T_TT + 0.4444) +   
+                              0.000002 * sin(21.3299 * T_TT + 5.5431)+   
+                              0.000010 * sin(628.3076 * T_TT + 4.2490) )/86400
     return(Mjd_TDB)
 }
 
@@ -248,7 +215,7 @@ cheb3D <- function(t, N, Ta, Tb, Cx, Cy, Cz) {
 }
 
 JPL_Eph_DE436 <- function(Mjd_TDB) {
-    # calculate equatorial position of sun, moon, and nine major planets 
+    # calculate equatorial position of sun, moon, and major planets 
     # using JPL Ephemerides
     JD <- Mjd_TDB + 2400000.5
     i <- which(JD > asteRiskData::DE436coeffs[, 1] & JD <= asteRiskData::DE436coeffs[, 2])[1]
@@ -651,7 +618,7 @@ calculateLambda <- function(rs, rp, sep) {
     } else {
         lambda <- (rs^2-rp^2)/rs^2 
     }
-    return(lambda)
+    return(as.numeric(lambda))
 }
 
 geometricShadow <- function(pccor,ccor,pscor,sbcor,bcor,sbpcor) {
@@ -666,8 +633,8 @@ geometricShadow <- function(pccor,ccor,pscor,sbcor,bcor,sbpcor) {
                   sbcor[3]*ubcor[1] - sbcor[1]*ubcor[3],
                   sbcor[1]*ubcor[2] - sbcor[2]*ubcor[1]) # perpendicular
         rsbx <- sbcor%*%ubcor # projection of sbcor along ubcor
-        rs <- R_sun/rb # apparent radius of Sun from satellite
-        rp <- r_ref/rsbx # apparent radius of Earth from satellite
+        rs <- sunRadius/rb # apparent radius of Sun from satellite
+        rp <- earthRadius_EGM96/rsbx # apparent radius of Earth from satellite
         sep <- sqrt(sum(sepp^2))/rsbx # apparent separation between Sun and Earth
         lambda <- calculateLambda(rs,rp,sep)
     }
@@ -680,8 +647,8 @@ geometricShadow <- function(pccor,ccor,pscor,sbcor,bcor,sbpcor) {
         if (rb > rps) {
             ubcor <- bcor/rb
             rsbx <- sbpcor %*% ubcor
-            rs <- R_sun/rb
-            rp <- R_moon/rsbx
+            rs <- sunRadius/rb
+            rp <- moonRadius/rsbx
             sepp <- c(sbpcor[2]*ubcor[3] - sbpcor[3]*ubcor[2],
                       sbpcor[3]*ubcor[1] - sbpcor[1]*ubcor[3],
                       sbpcor[1]*ubcor[2] - sbpcor[2]*ubcor[1])

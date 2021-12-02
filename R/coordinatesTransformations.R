@@ -1,9 +1,24 @@
 calculatePolarMotionMatrix <- function(julianDate) {
-    MJD <- julianDate - 2400000.5
-    A <- 2 * pi * (MJD - 57226) / 365.25
-    C <- 2 * pi * (MJD - 57226) / 435
-    xp <- (0.1033 + 0.0494*cos(A) + 0.0482*sin(A) + 0.0297*cos(C) + 0.0307*sin(C)) * 4.84813681e-6
-    yp <- (0.3498 + 0.0441*cos(A) - 0.0393*sin(A) + 0.0307*cos(C) - 0.0297*sin(C)) * 4.84813681e-6
+    hasData()
+    # Old code where polar coefficients xp and yp are calculated instead of 
+    # retrieved from data, based on Grady Hillhouse C++ implementation of
+    # Vallado's MatLab implementation
+    # MJD <- julianDate - 2400000.5
+    # A <- 2 * pi * (MJD - 57226) / 365.25
+    # C <- 2 * pi * (MJD - 57226) / 435
+    # xp <- (0.1033 + 0.0494*cos(A) + 0.0482*sin(A) + 0.0297*cos(C) + 0.0307*sin(C)) * 4.84813681e-6
+    # yp <- (0.3498 + 0.0441*cos(A) - 0.0393*sin(A) + 0.0307*cos(C) - 0.0297*sin(C)) * 4.84813681e-6
+    # polarMotionMatrix <- matrix(c(cos(xp), 0, -sin(xp),
+    #                               sin(xp)*sin(yp), cos(yp), cos(xp)*sin(yp),
+    #                               sin(xp)*cos(yp), -sin(yp), cos(xp)*cos(yp)),
+    #                             nrow=3, ncol=3, byrow=TRUE)
+    # New code using observed/predicted values retrieved from Celestrak, still
+    # using 80's nutation theory
+    MJD <- trunc(julianDate - 2400000.5)
+    earthPositionsRow <- asteRiskData::earthPositions[asteRiskData::earthPositions[,4] == MJD, ]
+    # Multiplication factor to convert from arcseconds to radians
+    xp <- earthPositionsRow[5] * 4.84813681e-6
+    yp <- earthPositionsRow[6] * 4.84813681e-6
     polarMotionMatrix <- matrix(c(cos(xp), 0, -sin(xp),
                                   sin(xp)*sin(yp), cos(yp), cos(xp)*sin(yp),
                                   sin(xp)*cos(yp), -sin(yp), cos(xp)*cos(yp)),
@@ -11,7 +26,7 @@ calculatePolarMotionMatrix <- function(julianDate) {
     return(polarMotionMatrix)
 }
 
-TEMEtoECEF <- function(position_TEME, velocity_TEME=c(0,0,0), dateTime) {
+TEMEtoITRF <- function(position_TEME, velocity_TEME=c(0,0,0), dateTime) {
     gmst <- UTCdateTimeToGMST(dateTime)
     daysToJ2000_0 <- as.numeric(julian(as.POSIXct(dateTime, tz="UTC"),
                                        origin=as.POSIXct("2000-01-01 12:00:00", tz="UTC")))
@@ -23,7 +38,12 @@ TEMEtoECEF <- function(position_TEME, velocity_TEME=c(0,0,0), dateTime) {
     position_PEF <- as.vector(t(PEF_TOD_matrix) %*% position_TEME)
     polarMotionMatrix <- calculatePolarMotionMatrix(julianDate)
     position_ECEF <- as.vector(t(polarMotionMatrix) %*% position_PEF)
-    omegaEarth <- c(0, 0, 7.29211514670698e-05 * (1.0  - 0.002/86400.0))
+    # Old version uses 0.002 as constant value for Length of Day (LOD)
+    # omegaEarth <- c(0, 0, 7.29211514670698e-05 * (1.0  - 0.002/86400.0))
+    # Now changed to get exact value from EOP tables
+    MJD <- trunc(julianDate - 2400000.5)
+    LOD <- asteRiskData::earthPositions[asteRiskData::earthPositions[,4] == MJD, 8]
+    omegaEarth <- c(0, 0, 7.29211514670698e-05 * (1.0  - LOD/86400.0))
     velocity_PEF <- as.vector(t(PEF_TOD_matrix) %*% velocity_TEME) -
         c(omegaEarth[2] * position_PEF[3] - omegaEarth[3] * position_PEF[2],
           omegaEarth[3] * position_PEF[1] - omegaEarth[1] * position_PEF[3],
@@ -35,17 +55,17 @@ TEMEtoECEF <- function(position_TEME, velocity_TEME=c(0,0,0), dateTime) {
     ))
 }
 
-ECEFtoLATLON <- function(position_ECEF, degreesOutput=TRUE) {
-    a <- 6378137.0
+ITRFtoLATLON <- function(position_ITRF, degreesOutput=TRUE) {
+    a <- earthRadius_WGS84
     a2 <- a^2
-    f <- 1/298.257223563
+    f <- earthFlatteningFactor_WGS84
     b <- a*(1-f)
     b2 <- b^2
     e <- sqrt((a2 - b2)/a2)
     eprime <- sqrt((a2 - b2)/b2)
-    X <- position_ECEF[1]
-    Y <- position_ECEF[2]
-    Z <- position_ECEF[3]
+    X <- position_ITRF[1]
+    Y <- position_ITRF[2]
+    Z <- position_ITRF[3]
     p <- sqrt(X^2 + Y^2)
     theta <- atan2(a*Z, b*p)
     sintheta <- sin(theta)
@@ -68,12 +88,28 @@ ECEFtoLATLON <- function(position_ECEF, degreesOutput=TRUE) {
     return(LATLONALT)
 }
 
-TEMEtoLATLON <- function(position_TEME, dateTime, degreesOutput=TRUE) {
-    ECEFcoords <- TEMEtoECEF(position_TEME=position_TEME, dateTime=dateTime)
-    return(ECEFtoLATLON(ECEFcoords$position, degreesOutput=degreesOutput))
+LATLONtoITRF <- function(position_LATLON, degreesInput=TRUE) {
+    lat <- position_LATLON[1]
+    lon <- position_LATLON[2]
+    alt <- position_LATLON[3]
+    if(degreesInput) {
+        lat <- deg2rad(lat)
+        lon <- deg2rad(lon)
+    }
+    # Prime-vertical radius of curvature
+    N <- earthRadius_WGS84/(sqrt(1 - earthEccentricity_WGS84^2 * sin(lat)^2))
+    position_ECEF <- c((N + alt) * cos(lat) * cos(lon),
+                       (N + alt) * cos(lat) * sin(lon),
+                       ((1 - earthEccentricity_WGS84^2) * N + alt) * sin(lat))
+    return(unname(position_ECEF))
 }
 
-ECEFtoGCRF <- function(position_ECEF, velocity_ECEF=c(0, 0, 0), dateTime) {
+TEMEtoLATLON <- function(position_TEME, dateTime, degreesOutput=TRUE) {
+    ECEFcoords <- TEMEtoITRF(position_TEME=position_TEME, dateTime=dateTime)
+    return(ITRFtoLATLON(ECEFcoords$position, degreesOutput=degreesOutput))
+}
+
+ITRFtoGCRF <- function(position_ITRF, velocity_ITRF=c(0, 0, 0), dateTime) {
     hasData()
     date <- strptime(dateTime, format="%Y-%m-%d %H:%M:%S", tz = "UTC")
     year <- date$year + 1900
@@ -82,15 +118,15 @@ ECEFtoGCRF <- function(position_ECEF, velocity_ECEF=c(0, 0, 0), dateTime) {
     hour <- date$hour
     minute <- date$min
     second <- date$sec
-    Mjd_UTC <- MJday(year, month, day, hour, minute, second)
-    results <- ECEFtoECI(Mjd_UTC, c(position_ECEF, velocity_ECEF))
+    Mjd_UTC <- iauCal2jd(year, month, day, hour, minute, second)$DATE
+    results <- ECEFtoECI(Mjd_UTC, c(position_ITRF, velocity_ITRF))
     return(list(
         position=as.numeric(results$position),
         velocity=as.numeric(results$velocity)
     ))
 }
 
-GCRFtoECEF <- function(position_GCRF, velocity_GCRF=c(0, 0, 0), dateTime) {
+GCRFtoITRF <- function(position_GCRF, velocity_GCRF=c(0, 0, 0), dateTime) {
     hasData()
     date <- strptime(dateTime, format="%Y-%m-%d %H:%M:%S", tz = "UTC")
     year <- date$year + 1900
@@ -99,7 +135,7 @@ GCRFtoECEF <- function(position_GCRF, velocity_GCRF=c(0, 0, 0), dateTime) {
     hour <- date$hour
     minute <- date$min
     second <- date$sec
-    Mjd_UTC <- MJday(year, month, day, hour, minute, second)
+    Mjd_UTC <- iauCal2jd(year, month, day, hour, minute, second)$DATE
     results <- ECItoECEF(Mjd_UTC, c(position_GCRF, velocity_GCRF))
     return(list(
         position=as.numeric(results$position),
@@ -109,15 +145,21 @@ GCRFtoECEF <- function(position_GCRF, velocity_GCRF=c(0, 0, 0), dateTime) {
 
 TEMEtoGCRF <- function(position_TEME, velocity_TEME=c(0,0,0), dateTime) {
     hasData()
-    ecef_results <- TEMEtoECEF(position_TEME, velocity_TEME, dateTime)
-    GCRF_results <- ECEFtoGCRF(ecef_results$position, ecef_results$velocity, dateTime)
+    ecef_results <- TEMEtoITRF(position_TEME, velocity_TEME, dateTime)
+    GCRF_results <- ITRFtoGCRF(ecef_results$position, ecef_results$velocity, dateTime)
     return(GCRF_results)
 }
 
 GCRFtoLATLON <- function(position_GCRF, dateTime, degreesOutput=TRUE) {
     hasData()
-    ECEFcoords <- GCRFtoECEF(position_GCRF=position_GCRF, dateTime=dateTime)
-    return(ECEFtoLATLON(ECEFcoords$position, degreesOutput=degreesOutput))
+    ECEFcoords <- GCRFtoITRF(position_GCRF=position_GCRF, dateTime=dateTime)
+    return(ITRFtoLATLON(ECEFcoords$position, degreesOutput=degreesOutput))
+}
+
+LATLONtoGCRF <- function(position_LATLON, dateTime, degreesInput=TRUE) {
+    hasData()
+    ECEFcoords <- LATLONtoITRF(position_LATLON, degreesInput=degreesInput)
+    return(ITRFtoGCRF(ECEFcoords, dateTime=dateTime))
 }
 
 KOEtoECI <- function(a, e, i, M, omega, OMEGA, keplerAccuracy=10e-8, maxKeplerIterations=100) {
@@ -136,7 +178,7 @@ KOEtoECI <- function(a, e, i, M, omega, OMEGA, keplerAccuracy=10e-8, maxKeplerIt
     nu <- 2 * atan2(sqrt(1 + e) * sin(Eomega/2), sqrt(1 - e) * cos(Eomega/2))
     R <- a * (1 - e*cos(Eomega))
     orbital_position <- R * c(cos(nu), sin(nu), 0)
-    orbital_velocity <- (sqrt(earth_mu * a)/R) * c(-sin(Eomega), sqrt(1-e^2) * cos(Eomega), 0)
+    orbital_velocity <- (sqrt(GM_Earth_TCB * a)/R) * c(-sin(Eomega), sqrt(1-e^2) * cos(Eomega), 0)
     eci_position <- c(orbital_position[1] * (cos(omega) * cos(OMEGA) - sin(omega) * cos(i) * sin(OMEGA)) -
                           orbital_position[2] * (sin(omega) * cos(OMEGA) + cos(omega) * cos(i) * sin(OMEGA)),
                       orbital_position[1] * (cos(omega) * sin(OMEGA) + sin(omega) * cos(i) * cos(OMEGA)) +
@@ -158,22 +200,22 @@ ECItoKOE <- function(position_ECI, velocity_ECI) {
     # calculate orbital momentum
     eps <- .Machine$double.eps
     h <- vectorCrossProduct3D(position_ECI, velocity_ECI)
-    e_vector <- vectorCrossProduct3D(velocity_ECI, h)/earth_mu - position_ECI/sqrt(sum(position_ECI^2))
+    e_vector <- vectorCrossProduct3D(velocity_ECI, h)/GM_Earth_TCB - position_ECI/sqrt(sum(position_ECI^2))
     # This is equivalent to the following expression by Vallado 2007
-    # e_vector2 <- ((sum(velocity_ECI^2) - earth_mu/sqrt(sum(position_ECI^2)))*position_ECI - 
-    # (position_ECI%*%velocity_ECI)*velocity_ECI )/earth_mu
+    # e_vector2 <- ((sum(velocity_ECI^2) - GM_Earth_TCB/sqrt(sum(position_ECI^2)))*position_ECI - 
+    # (position_ECI%*%velocity_ECI)*velocity_ECI )/GM_Earth_TCB
     e <- sqrt(sum(e_vector^2))
     node_vector <- c(-h[2], h[1], 0)
-    E <- sum(velocity_ECI^2)/2 - earth_mu/sqrt(sum(position_ECI^2))
+    E <- sum(velocity_ECI^2)/2 - GM_Earth_TCB/sqrt(sum(position_ECI^2))
     if(abs(E) > eps) {
-        a <- -earth_mu/(2*E)
+        a <- -GM_Earth_TCB/(2*E)
         # p <- a*(1-e^2)
     } else {
-        # p <- sum(h^2)/earth_mu
+        # p <- sum(h^2)/GM_Earth_TCB
         a <- Inf
     }
     # Vallado´s implementation defines p always as follows
-    p <- sum(h^2)/earth_mu
+    p <- sum(h^2)/GM_Earth_TCB
     i <- acos(h[3]/sqrt(sum(h^2)))
     # determine special orbit cases
     orbitType <- "ei" # general case: non-circular (elliptical) orbit with inclination

@@ -1,25 +1,28 @@
-XKMPER <- 6378.135 # Earth radius in kilometers
+## SGP4 constants
+
+# XKMPER <- 6378.135 # Earth radius in kilometers
+earthRadius_SGP4 <- 6378.135 # Earth radius in kilometers, value for SGP/SDP. From WGS-72
 ae <- 1 # distance units per earth radii
-earthEccentricity <- 0.0818191908 # Earth eccentricity
+# earthEccentricity <- 0.0818191908 # Earth eccentricity
 
 J2 <- 1.082616e-3 # second gravitational zonal harmonic of Earth
 J3 <- -2.53881e-6 # third gravitational zonal harmonic of Earth
 J4 <- -1.65597e-6 # fourth gravitational zonal harmonic of Earth
 k2 <- 0.5 * J2 * ae ^ 2
 k4 <- (-3 / 8) * J4 * ae ^ 4
-ke <- 7.43669161e-2
+# ke <- 7.43669161e-2 OLD IMPLEMENTATION OF WGS72
+GM_Earth_WGS72 <- 398600.8
+ke <- 60/(sqrt(earthRadius_SGP4^3/GM_Earth_WGS72))
 A30 <- -J3 * ae ^ 3
 
-q0 <- 120 / 6378.135 + 1 # parameter for SGP4/SGP8 density function
-s <- 78 / 6378.135 + 1 # another parameter for SGP4/SGP8 density function
-
-# Julian Day of J2000.0 epoch.
-JD_J2000_0 <- 2451545.0
+q0 <- 120 / 6378.135 + 1 # q0 parameter for SGP4/SGP8 density function
+s <- 78 / 6378.135 + 1 # s parameter for SGP4/SGP8 density function
+qzms2t <- ((120 - 78)/earthRadius_SGP4)^4
 
 ## Constants required for SDP4
 
 STEP <- 720.0
-MAX_INTEGRATE <- STEP * 10000
+# MAX_INTEGRATE <- STEP * 10000
 ZNS <- 1.19459E-5
 C1SS <- 2.9864797e-6
 ZES <- 0.01675
@@ -45,93 +48,55 @@ Q22 <- 1.7891679e-6
 Q31 <- 2.1460748e-6
 Q33 <- 2.2123015e-7
 
-
-## Initial values for SDP4
-
-atime <- 0.0
-xli <- 0.0
-xni <- 0.0
-xfact <- 0.0
-ssl <- 0.0
-ssg <- 0.0
-ssh <- 0.0
-sse <- 0.0
-ssi <- 0.0
-xlamo <- 0.0
-gmst <- 0.0
-del1 <- 0.0
-del2 <- 0.0
-del3 <- 0.0
-fasx2 <- 0.0
-fasx4 <- 0.0
-fasx6 <- 0.0
-d2201 <- 0.0
-d2211 <- 0.0
-d3210 <- 0.0
-d3222 <- 0.0
-d4410 <- 0.0
-d4422 <- 0.0
-d5220 <- 0.0
-d5232 <- 0.0
-d5421 <- 0.0
-d5433 <- 0.0
-xnddt <- 0.0
-xndot <- 0.0
-xldot <- 0.0
-zmos <- 0.0
-se2 <- 0.0
-se3 <- 0.0
-si2 <- 0.0
-si3 <- 0.0
-sl2 <- 0.0
-sl3 <- 0.0
-sl4 <- 0.0
-sgh2 <- 0.0
-sgh3 <- 0.0
-sgh4 <- 0.0
-sh2 <- 0.0
-sh3 <- 0.0
-zmol <- 0.0
-ee2 <- 0.0
-e3 <- 0.0
-xi2 <- 0.0
-xi3 <- 0.0
-xl2 <- 0.0
-xl3 <- 0.0
-xl4 <- 0.0
-xgh2 <- 0.0
-xgh3 <- 0.0
-xgh4 <- 0.0
-xh2 <- 0.0
-xh3 <- 0.0
-pe <- 0.0
-pinc <- 0.0
-pgh <- 0.0
-ph <- 0.0
-pl <- 0.0
-pgh0 <- 0.0
-ph0 <- 0.0
-pe0 <- 0.0
-pinc0 <- 0.0
-pl0 <- 0.0
-se <- 0
-si <- 0
-sl <- 0
-sgh <- 0
-shdq <- 0
+## Constants required for calculation of acceleration and conversion of
+## coordinates systems
 
 # WGS84 constants
+earthRadius_WGS84 <- 6.378137e6 # WGS84 Earth radius in meters
+earthEccentricity_WGS84 <- 8.18191908426214947083e-2
+earthFlatteningFactor_WGS84 <- 1/298.257223563
+J2_WGS84 <- 0.00108262998905
+# WGS84_E2D2 <-earthEccentricity_WGS84^2/2
+# WGS84_E4D4 <- earthEccentricity_WGS84^4/4
+# WGS84_INVA2 <- 1/earthRadius_WGS84^2
+# WGS84_P1ME2 <- 1 - earthEccentricity_WGS84^2
+# WGS84_P1ME2DA2 <- (1 - earthEccentricity_WGS84^2) / (earthRadius_WGS84^2)
+# WGS84_HMIN <- 2.25010182030430273673e-14
 
-WGS84_A <- 6.378137e6
-WGS84_E <- 8.18191908426214947083e-2
-WGS84_E2D2 <-WGS84_E^2/2
-WGS84_E4D4 <- WGS84_E^4/4
-WGS84_INVA2 <- 1/WGS84_A^2
-WGS84_P1ME2 <- 1 - WGS84_E^2
-WGS84_P1ME2DA2 <- (1 - WGS84_E^2) / (WGS84_A^2)
-WGS84_HMIN <- 2.25010182030430273673e-14
+# Mathematical constants
+const_Arcs <- 3600*180/pi         # Arcseconds per radian
+DAS2R <- 4.848136811095359935899141e-6 # Arcseconds to radians 
+TURNAS <- 1296000.0 # Arcseconds in a full circle 
+inv_cbr_2 <- 1/(2^(1/3)) # Inverse of cubic root of 2
 
-# Other constants
+# Date-related constants
+JD_J2000_0 <- 2451545.0 # Julian Day of J2000.0 epoch.
+DJC <- 36525.0
+MJD_J2000 <- 51544.5 # MJD for J2000.0
 
-inv_cbr_2 <- 1/(2^(1/3))
-earth_mu <- 3.986004418e14
+# Gravitational coefficients in m3/s2, all in DE436 except Earth in WGS84 system
+GM_Earth_TCB <- 398600.4418e9 # WGS84 system (TCB compatible)
+GM_Earth_TT <- 398600.4415e9 # GGM03S - TT compatible
+GM_Sun <- 132712440041.9394e9
+GM_Moon <- GM_Earth_TCB / 81.3005682168675747
+GM_Mercury <- 22031.78000000002e9
+GM_Venus <- 324858.5920000001e9
+GM_Mars <- 42828.37521400003e9
+GM_Jupiter <- 126712764.1334462e9
+GM_Saturn <- 37940585.20000001e9
+GM_Uranus <- 5794556.465751793e9
+GM_Neptune <- 6836527.100580024e9
+GM_Pluto <- 975.5011758767654e9
+
+# Other constants required for calculation of acceleration
+earthRadius_EGM96 <- 6378.1363e3 # radius of Earth in m, EGM96 model
+sunRadius <- 696000e3 # radius of Sun in m
+moonRadius <- 1738e3 # radius of Moon in m
+AU <- 149597870699.999988 # meters in one AU
+c_light <- 299792457.999999984 # speed of light in m/s
+solarPressureConst <- 1367/c_light # solar radiation pressure at 1 AU in N/m^2 = 1367 W/m^2)
+omegaEarth <- 15.04106717866910/3600*(pi/180) # Earth rotation (derivative of GSMT at J2000) in rad/s
+
+# Ephemeris model constants
+EMRAT = 81.3005682168675747
+EMRAT1 = 1/(1+EMRAT)

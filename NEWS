@@ -1,3 +1,16 @@
+Changes in version 1.2.0 (2021-12-01)
++ Added functions to convert from geodetic latitude, longitude and altitude to ITRF and GCRF frames
++ ECEF frame has been renamed to ITRF, which was the actual ECEF frame in use by the relevant functions
++ Removed redundant internal functions and constants
++ Now actual Earth Orientation Parameters are used to calculate polar motion matrices
++ Corrections to the space weather parameters used by the NRLMSISE-00 model have been applied
++ Fixed bug when reading fields of RINEX GLONASS navigation files
++ Functions to read RINEX navigation files now perform correction of ephemeris times to UTC, according to each GNSS specifications
++ readGPSNavigationRINEX now also calculated the ephemeris in Cartesian coordinates in ECEF frame
++ Fixed error in documentation that erroneously indicated GLONASS ephemerides were in GCRF frame (when they are actually in ECEF frame)
++ Multiple bugs in SGP4/SDP4 implementations fixed, and changes introduced in Revisiting Space Track Report #3 have also been added
++ Added a description of a simple way to calcualte a good estimate of the effective area of a satellite in the manual page for hpop()
+
 Changes in version 1.1.0 (2021-07-05)
 + Added functions to read RINEX navigation files for GPS and GLONASS satellites
 + Changed vignette to avoid errors due to lack of PhantomJS

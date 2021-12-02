@@ -7,8 +7,18 @@ rad2deg <- function(radians) {
 }
 
 UTCdateTimeToGMST <- function(dateTime) {
+    # Formula is actually for converting from UT1 Julian date, but difference 
+    # between UTC and UT1 JD will be below 0.9 seconds
     daysToJ2000_0 <- as.numeric(julian(as.POSIXct(dateTime, tz="UTC"),
                                        origin=as.POSIXct("2000-01-01 12:00:00", tz="UTC")))
+    centuriesFromJ2000 <- daysToJ2000_0/36525
+    GMST <- 67310.54841 + (876600.0*3600 + 8640184.812866)*centuriesFromJ2000+ 0.093104*centuriesFromJ2000^2 - 6.2e-6*centuriesFromJ2000^3
+    GMST <- GMST %% 86400
+    return(GMST*pi/43200)
+}
+
+MJDToGMST <- function(MJD) {
+    daysToJ2000_0 <- MJD - MJD_J2000
     centuriesFromJ2000 <- daysToJ2000_0/36525
     GMST <- 67310.54841 + (876600.0*3600 + 8640184.812866)*centuriesFromJ2000+ 0.093104*centuriesFromJ2000^2 - 6.2e-6*centuriesFromJ2000^3
     GMST <- GMST %% 86400
@@ -21,12 +31,15 @@ rem <- function(x, y) {
 }
 
 meanMotionToSemiMajorAxis <- function(meanMotion) {
-    a <- (earth_mu)^(1/3) / ((2*pi*meanMotion/86400)^(2/3))
+    # output will be in meters
+    a <- (GM_Earth_TCB)^(1/3) / ((2*pi*meanMotion/86400)^(2/3))
     return(a)
 }
 
-semiMajorAxisToMeanMotion <- function(semiMajorAxis) {
-    n <- sqrt(earth_mu/semiMajorAxis^3) * (86400/(2*pi))
+semiMajorAxisToMeanMotion <- function(semiMajorAxis, outputRevsPerDay=TRUE) {
+    # provide input in meters
+    n <- sqrt(GM_Earth_TCB/semiMajorAxis^3)
+    if(outputRevsPerDay) n <- n * (86400/(2*pi))
     return(n)
 }
 
@@ -37,7 +50,7 @@ vectorCrossProduct3D <- function(u, v) {
     return(w)
 }
 
-getLatestSpaceData <- function() { # TODO: MOVE TO THIS PACKAGE
+getLatestSpaceData <- function() { # TODO: MOVE TO THIS PACKAGE?
     hasData()
     asteRiskData::getLatestSpaceData()
 }

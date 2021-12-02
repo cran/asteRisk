@@ -132,47 +132,47 @@ last_molniya_propagation$algorithm
 #  
 #  orbit_animation
 
-## ----tidy = TRUE--------------------------------------------------------------
-# Let us convert the last propagation previously calculated for the MOLNIYA 1-83
-# satellite into the ECEF frame. In order to do so, it is required to provide
-# a date-time string indicating the time for the newly calculated position and
-# velocity. Since this was 720 minutes after the epoch for the original state
-# vector, we can just add 12 hours to it 
-
-molniya$dateTime
-
-new_dateTime <- "2006-06-25 12:33:43"
-
-ecef_coordinates <- TEMEtoECEF(last_molniya_propagation$position,
-                               last_molniya_propagation$velocity,
-                               new_dateTime)
-
-# Let us now convert the previously calculated set of TEME coordinates to
-# geodetic latitude and longitude
-
-geodetic_matrix <- matrix(nrow=nrow(results_position_matrix), ncol=3)
-
-for(i in 1:nrow(geodetic_matrix)) {
-    new_dateTime <- as.character(as.POSIXct(molniya$dateTime, tz="UTC") + 60*targetTimes[i])
-    new_geodetic <- TEMEtoLATLON(results_position_matrix[i, 1:3]*1000,
-                                 new_dateTime)
-    geodetic_matrix[i,] <- new_geodetic
-}
-
-colnames(geodetic_matrix) <- c("latitude", "longitude", "altitude")
-
-# We can then visualize the ground track of the satellite
-
-library(ggmap)
-
-ggmap(get_map(c(left=-180, right=180, bottom=-80, top=80))) +
-  geom_segment(data=as.data.frame(geodetic_matrix), 
-               aes(x=longitude, y=latitude, 
-                   xend=c(tail(longitude, n=-1), NA), 
-                   yend=c(tail(latitude, n=-1), NA)), 
-               na.rm=TRUE) +
-  geom_point(data=as.data.frame(geodetic_matrix), aes(x=longitude, y=latitude), 
-             color="blue", size=0.3, alpha=0.8)
+## ----tidy = TRUE, eval = evaluateExtraChunks----------------------------------
+#  # Let us convert the last propagation previously calculated for the MOLNIYA 1-83
+#  # satellite into the ITRF frame. In order to do so, it is required to provide
+#  # a date-time string indicating the time for the newly calculated position and
+#  # velocity. Since this was 720 minutes after the epoch for the original state
+#  # vector, we can just add 12 hours to it
+#  
+#  molniya$dateTime
+#  
+#  new_dateTime <- "2006-06-25 12:33:43"
+#  
+#  ITRF_coordinates <- TEMEtoITRF(last_molniya_propagation$position,
+#                                 last_molniya_propagation$velocity,
+#                                 new_dateTime)
+#  
+#  # Let us now convert the previously calculated set of TEME coordinates to
+#  # geodetic latitude and longitude
+#  
+#  geodetic_matrix <- matrix(nrow=nrow(results_position_matrix), ncol=3)
+#  
+#  for(i in 1:nrow(geodetic_matrix)) {
+#      new_dateTime <- as.character(as.POSIXct(molniya$dateTime, tz="UTC") + 60*targetTimes[i])
+#      new_geodetic <- TEMEtoLATLON(results_position_matrix[i, 1:3]*1000,
+#                                   new_dateTime)
+#      geodetic_matrix[i,] <- new_geodetic
+#  }
+#  
+#  colnames(geodetic_matrix) <- c("latitude", "longitude", "altitude")
+#  
+#  # We can then visualize the ground track of the satellite
+#  
+#  library(ggmap)
+#  
+#  ggmap(get_map(c(left=-180, right=180, bottom=-80, top=80))) +
+#    geom_segment(data=as.data.frame(geodetic_matrix),
+#                 aes(x=longitude, y=latitude,
+#                     xend=c(tail(longitude, n=-1), NA),
+#                     yend=c(tail(latitude, n=-1), NA)),
+#                 na.rm=TRUE) +
+#    geom_point(data=as.data.frame(geodetic_matrix), aes(x=longitude, y=latitude),
+#               color="blue", size=0.3, alpha=0.8)
 
 ## ----tidy = TRUE, eval = evaluateExtraChunks----------------------------------
 #  # The HPOP requires as input the satellite mass, the effective areas subjected
@@ -200,12 +200,12 @@ ggmap(get_map(c(left=-180, right=180, bottom=-80, top=80))) +
 #  # a mismatch between the position derivative calculated at each propagation
 #  # point through SGP4/SDP4 and the actual velocity of the satellite.
 #  
-#  GCRF_coordinates <- TEMEtoGCRF(results_position_matrix[1,1:3],
-#                                 results_velocity_matrix[1,1:3],
+#  GCRF_coordinates <- TEMEtoGCRF(results_position_matrix[1,1:3]*1000,
+#                                 results_velocity_matrix[1,1:3]*1000,
 #                                 molniya$dateTime)
 #  
-#  initialPosition <- GCRF_coordinates$position*1000
-#  initialVelocity <- GCRF_coordinates$velocity*1000
+#  initialPosition <- GCRF_coordinates$position
+#  initialVelocity <- GCRF_coordinates$velocity
 #  
 #  # Let´s use the HPOP to calculate the position each 2 minutes during a period
 #  # of 3 hours
