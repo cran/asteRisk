@@ -79,6 +79,11 @@ parseTLElines <- function(lines) {
 }
 
 readTLE <- function(filename, maxTLEs=NULL) {
+    if(grepl("http", filename)) {
+        tmpFile <- tempfile("asteRiskTLE")
+        download.file(filename, tmpFile)
+        filename <- tmpFile
+    }
     line1 <- readLines(filename, n=1)
     if(substr(line1, 1, 1) != "1" | nchar(trimws(line1)) <= 12) {
         numberLines <- 3
