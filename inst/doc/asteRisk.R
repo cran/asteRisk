@@ -165,7 +165,7 @@ colnames(geodetic_matrix) <- c("latitude", "longitude", "altitude")
 
 library(ggmap)
 
-ggmap(get_map(c(left=-180, right=180, bottom=-80, top=80))) +
+ggmap(get_map(c(left=-180, right=180, bottom=-80, top=80), source = "stamen")) +
   geom_segment(data=as.data.frame(geodetic_matrix), 
                aes(x=longitude, y=latitude, 
                    xend=c(tail(longitude, n=-1), NA), 
@@ -230,7 +230,7 @@ colnames(geodetic_matrix_hpop) <- c("latitude", "longitude", "altitude")
 
 library(ggmap)
 
-ggmap(get_map(c(left=-180, right=180, bottom=-80, top=80))) +
+ggmap(get_map(c(left=-180, right=180, bottom=-80, top=80), source = "stamen")) +
   geom_segment(data=as.data.frame(geodetic_matrix_hpop), 
                aes(x=longitude, y=latitude, 
                    xend=c(tail(longitude, n=-1), NA), 
