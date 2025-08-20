@@ -2,8 +2,9 @@ odeModel <- function(t, state, parameters) {
     with(as.list(c(state, parameters)), {
         state_vector <- state
         results <- accel(t, state_vector, MJD_UTC, solarArea, satelliteMass, 
-                              satelliteArea, Cr, Cd, earthSPHDegree, SETcorrections,
-                              OTcorrections, moonSPHDegree, centralBody, autoCentralBodyChange)
+                         satelliteArea, Cr, Cd, earthSPHDegree, SETcorrections,
+                         OTcorrections, moonSPHDegree, SMTcorrections,
+                         centralBody, autoCentralBodyChange)
         centralBody <- results[[2]]
         if(autoCentralBodyChange & centralBody != globalVarsEnv$latestCentralBody) {
             if((t - globalVarsEnv$timeOfLastCentralBodyChange) > 3600) {
@@ -25,15 +26,16 @@ odeModel <- function(t, state, parameters) {
         d2z <- acceleration[2, 3]
         setTxtProgressBar(progressBar, t)
         list(c(dx, dy, dz, d2x, d2y, d2z),
-             centralBodiesNum[centralBody])
+             centralBodiesNum[centralBody], c(d2x, d2y, d2z))
     })
 }
 
 hpop <- function(position, velocity, dateTime, times, satelliteMass, dragArea, 
                  radiationArea, dragCoefficient, radiationCoefficient, 
                  earthSphericalHarmonicsDegree = 130, solidEarthTides=TRUE,
-                 oceanTides=TRUE, moonSphericalHarmonicsDegree = 150, 
-                 centralBody="Earth", autoCentralBodyChange=TRUE, ...) {
+                 oceanTides=TRUE, moonSphericalHarmonicsDegree = 150,
+                 solidMoonTides=TRUE, centralBody="Earth", 
+                 autoCentralBodyChange=TRUE, ...) {
     if(!(centralBody %in% c("SSB", "Mercury", "Venus", "Earth", "Moon",
                            "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto")))
     hasData()
@@ -92,13 +94,16 @@ hpop <- function(position, velocity, dateTime, times, satelliteMass, dragArea,
         moonSPHDegree = moonSphericalHarmonicsDegree,
         SETcorrections = solidEarthTides,
         OTcorrections = oceanTides,
+        SMTcorrections = solidMoonTides,
         centralBody = realCentralBody,
         autoCentralBodyChange = autoCentralBodyChange,
         progressBar = progressBar,
         globalVarsEnv = environment())
     integration_results <- ode(y=initial_state, times=times, func=odeModel,
-                               parms=parameters, method="radau", rtol=1e-13,
-                               atol=1e-16, hini=0.01, ...)
+                               parms=parameters, 
+                               #method="radau", rtol=1e-13,
+                               #atol=1e-16, hini=0.01, 
+                               ...)
     close(progressBar)
     previousStepCentralBodies <- integration_results[, 8]
     oldCentralBody <- previousStepCentralBodies[1]
@@ -130,14 +135,17 @@ hpop <- function(position, velocity, dateTime, times, satelliteMass, dragArea,
                 moonSPHDegree = moonSphericalHarmonicsDegree,
                 SETcorrections = solidEarthTides,
                 OTcorrections = oceanTides,
+                SMTcorrections = solidMoonTides,
                 centralBody = names(which(centralBodiesNum == newCentralBody)),
                 autoCentralBodyChange = autoCentralBodyChange,
                 progressBar = progressBar,
                 globalVarsEnv = environment()
             )
             newIntegration_results <- ode(y=newInitial_state, times=newTimes, func=odeModel,
-                                          parms=newParameters, method="radau", rtol=1e-13,
-                                          atol=1e-16, hini=0.01, ...)
+                                          parms=newParameters, 
+                                          #method="radau", rtol=1e-13,
+                                          #atol=1e-16, hini=0.01, 
+                                          ...)
             close(progressBar)
             totalChangePoint <- totalChangePoint + changePoint 
             combinedResults[totalChangePoint:nrow(combinedResults), ] <- newIntegration_results
@@ -147,9 +155,14 @@ hpop <- function(position, velocity, dateTime, times, satelliteMass, dragArea,
         combinedResults[, 1] <- times
         integration_results <- combinedResults
     }
-    numeric_results <- integration_results[, 1:7]
+    numeric_results <- integration_results[, c(1:7, 9:11)]
     central_bodies <- names(centralBodiesNum[integration_results[, 8]])
     output <- cbind(as.data.frame(numeric_results), central_bodies)
-    colnames(output) <- c("time", "X", "Y", "Z", "dX", "dY", "dZ", "Central body")
+    colnames(output) <- c("time", "positionX", "positionY", "positionZ", 
+                          "velocityX", "velocityY", "velocityZ", 
+                          "accelerationX", "accelerationY", "accelerationZ",
+                          "Central body")
     return(output)
 }
+
+

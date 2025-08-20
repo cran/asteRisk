@@ -1,6 +1,6 @@
-\name{ECItoKOE}
-\alias{ECItoKOE}
-\title{Calculate ECI coordinates from Keplerian orbital elements
+\name{BCItoKOE}
+\alias{BCItoKOE}
+\title{Calculate Keplerian orbital elements from BCI coordinates
 }
 \description{
 Keplerian orbital elements are a set of six parameters used to described the
@@ -12,23 +12,30 @@ if perturbations were absent). These are called osculating orbital elements.
 
 Keplerian orbital elements can be unequivocally determined from a satellite
 if its position and velocity are known. This function calculates orbital
-elements from the position and velocity of a satellite in an ECI (Earth-centered
+elements from the position and velocity of a satellite in an BCI (body-centered
 inertial) frame of reference. The elements (such as the equatorial plane) with 
 respect to which the resulting orbital elements will be defined are the same as 
-those used for the ECI frame of reference. The function calculates the six
+those used for the BCI frame of reference. The function calculates the six
 standard orbital elements, plus some alternative elements useful for the 
 characterization of special orbits, such as circular ones or orbits with no
 inclination.
+
+By default, the function assumes the central body is the Earth and uses the GM
+of the Earth in the TDB frame. This can be changed by providing the GM of the
+desired central body in m^3/s^2.
 }
 \usage{
-ECItoKOE(position_ECI, velocity_ECI)
+BCItoKOE(position_BCI, velocity_BCI, centralBodyGM=GM_Earth_TDB)
 }
 \arguments{
-  \item{position_ECI}{Vector with the X, Y and Z components of the position
-  of an object in an ECI frame, in m.
+  \item{position_BCI}{Vector with the X, Y and Z components of the position
+  of an object in a BCI frame, in m.
   }
-  \item{velocity_ECI}{Vector with the X, Y and Z components of the velocity
-  of an object in an ECI frame, in m/s.
+  \item{velocity_BCI}{Vector with the X, Y and Z components of the velocity
+  of an object in a BCI frame, in m/s.
+  }
+  \item{centralBodyGM}{GM of the central body in m^3/s^2. By default, the GM of
+  the Earth in the TDB frame is used.
   }
 }
 \value{
@@ -49,11 +56,11 @@ A list with the following standard and alternative orbital elements:
   }
   \item{argumentPerigee}{Argument of perigee in radians. This is the angle between the 
   direction of the ascending node and the direction of the perigee (the point of 
-  the orbit at which the object is closest to the Earth).
+  the orbit at which the object is closest to the central body).
   }
   \item{longitudeAscendingNode}{Longitude of the ascending node (also called
   right ascension of the ascending node) in radians. This is the angle between 
-  the direction of the ascending node (the point where thesatellite crosses the 
+  the direction of the ascending node (the point where the satellite crosses the 
   equatorial plane moving north) and the direction of the First Point of Aries 
   (which indicates the location of the vernal equinox).
   }
@@ -92,5 +99,5 @@ velocity_GCRF <- c(-3251.691, -3276.008, 4009.228)
 
 # Let's calculate the orbital elements of the satellite at that time
 
-orbital_elements <- ECItoKOE(position_GCRF, velocity_GCRF)
+orbital_elements <- BCItoKOE(position_GCRF, velocity_GCRF)
 }

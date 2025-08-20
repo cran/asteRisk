@@ -13,9 +13,10 @@ of a much higher computational cost. The forces and effects currently considered
 are gravitational attraction by the  Earth (using the GGM05C gravity model, with
 spherical harmonics up to degree and order of 360); effects of Earth ocean and 
 solid tides; gravitational attraction by the Moon (using the GRGM1200B gravity
-model with spherical harmonics up to degree and order of 1200), Sun and planets 
-(considered as point masses); solar radiation pressure; atmospheric drag, and relativistic 
-effects. The forcefield is based on the forces described in Satellite Orbits: 
+model with spherical harmonics up to degree and order of 1200), effects of solid
+Moon tides (currently using an ellastic Moon model), Sun and planets (considered 
+as point masses); solar radiation pressure; atmospheric drag, and relativistic 
+effects. The force field is based on the forces described in Satellite Orbits: 
 Models, Methods and Applications (Oliver Montenbruck and Eberhard Gill) and 
 Fundamentals of Astrodynamics and Applications (David Vallado).
 The NRLMSISE-00 model is used to calculate atmospheric density for the
@@ -38,8 +39,8 @@ the modeled forces. \code{asteRiskData} can be installed by running
 hpop(position, velocity, dateTime, times, satelliteMass, dragArea, 
      radiationArea, dragCoefficient, radiationCoefficient, 
      earthSphericalHarmonicsDegree=130, solidEarthTides=TRUE,
-     oceanTides=TRUE, moonSphericalHarmonicsDegree=150, centralBody="Earth", 
-     autoCentralBodyChange=TRUE, ...)
+     oceanTides=TRUE, moonSphericalHarmonicsDegree=150, solidMoonTides=TRUE,
+     centralBody="Earth", autoCentralBodyChange=TRUE, ...)
 }
 \arguments{
   \item{position}{Initial position of the satellite in the GCRF system of
@@ -110,6 +111,12 @@ hpop(position, velocity, dateTime, times, satelliteMass, dragArea,
   field will only be used if Moon is the central body for propagation; otherwise,
   only a point-mass attraction will be calculated.
   }
+  \item{solidMoonTides}{Logical indicating if corrections of the Cnm and Snm
+  Stokes' coefficients for the lunar gravity model due to solid Moon tides 
+  should be performed, following the procedure described by William and Boggs, 
+  2015 using an elastic Moon model. Corrections are applied to the C20, C21, C22,
+  S21 and S22 coefficients.
+  }
   \item{centralBody}{Character string indicating the celestial body on which the
   supplied initial position (in ICRF) are centered. Should be one of "SSB" (meaning
   Solar System Barycenter), "Mercury", "Venus", "Earth", "Moon", "Mars", "Jupiter",
@@ -125,19 +132,21 @@ hpop(position, velocity, dateTime, times, satelliteMass, dragArea,
   based on the radii of the spheres of influence of the main planets, the Moon
   and Pluto. By default, \code{autoCentralBodyChange=TRUE}.
   }
-  \item{...}{Additional parameters to be passed to \link{ode} to control how
+  \item{...}{Additional parameters to be passed to \link[deSolve]{ode} to control how
   numerical integration is performed. By default, the RADAU5 solver is used.
   }
 }
 \value{
 A data frame with the results of the numerical integration at the requested times.
 Each row contains the results for one of the requested times. The data frame 
-contains eight columns: time (indicating the time for the corresponding row
-in seconds since the initial time), X, Y, Z (indicating the X, Y and Z
-components of the position for that time in meters), dX, dY and dZ (indicating
-the X, Y and Z components of the velocity for that time in meters/second) and 
-centralBody, indicating the central body of the frame of reference for the
-results for the corresponding time.
+contains 11 columns: time (indicating the time for the corresponding row
+in seconds since the initial time), positionX, positionY, positionZ (indicating 
+the X, Y and Z components of the position for that time in meters), velocityX, 
+velocityY and velocityZ (indicating the X, Y and Z components of the velocity 
+for that time in meters/second), accelerationX, accelerationY, accelerationZ 
+(indicating the X, Y and Z components of the acceleration for that time in 
+meters/second^2) and centralBody, indicating the central body of the frame of 
+reference for the results for the corresponding time.
 Positions and velocities are returned in the ICRF frame of reference, centered
 in the celestial body specified in column centralBody. If \code{autoCentralBodyChange=TRUE},
 the celestial body whose sphere of influence includes the object of interest
@@ -163,6 +172,7 @@ https://digitalcommons.usu.edu/cgi/viewcontent.cgi?article=1144&context=smallsat
 https://iopscience.iop.org/article/10.1088/1742-6596/911/1/012009/pdf
 https://www.sciencedirect.com/science/article/pii/S1110016821000016
 https://etd.auburn.edu/bitstream/handle/10415/1133/Vautier_Mana_34.pdf?sequence=1
+https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2014JE004755
 }
 \examples{
 if(requireNamespace("asteRiskData", quietly = TRUE)) {

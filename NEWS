@@ -1,3 +1,9 @@
+Changes in version 1.4.4 (2025-07-24)
++ Added support to read binary SPK and generic DAF files
++ Added support to read GPS and GLONASS RINEX navigation files of version 3
++ Added function evaluateSPKSegment() to evaluate an SPK segment at any epoch covered by it
++ Functions ECItoKOE() and KOEtoECI() have been renamed to BCItoKOE() and KOEtoBCI(), and now take an additional parameter specifying the gravitational parameter of the central body (by default, Earth's).
+
 Changes in version 1.4.3 (2023-13-01)
 + Function hpop() now displays a progress bar
 + New function calculateRazel() can be used to calculate azimuth, elevation and range of a satellite from an obnservation point

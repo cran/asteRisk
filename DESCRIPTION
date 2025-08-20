@@ -1,9 +1,9 @@
 Package: asteRisk
 Type: Package
 Title: Computation of Satellite Position
-Version: 1.4.3
+Version: 1.4.4
 Authors@R: c(
-    person("Rafael", "Ayala", email = "rafael.ayala@oist.jp", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9332-4623")),
+    person("Rafael", "Ayala", email = "rafaelayalahernandez@gmail.com", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9332-4623")),
     person("Daniel", "Ayala", email = "dayala1@us.es", role = "aut", comment = c(ORCID = "0000-0003-2095-1009")),
     person("David", "Ruiz", email = "druiz@us.es", role = "aut", comment = c(ORCID = "0000-0003-4460-5493")),
     person("Lara", "Selles Vidal", email = "lara.selles@oist.jp", role = "aut", comment = c(ORCID = "0000-0003-2537-6824")))
@@ -29,22 +29,25 @@ Acknowledgements: The development of this work is supported by the
         Innovation (grant code PID2019-105471RB-I00) and the Regional
         Government of Andalusia (grant code P18-RT-1060) to David Ruiz.
 License: GPL-3
-LinkingTo: Rcpp, RcppParallel
-SystemRequirements: C++11, GNU make
-Imports: deSolve, nanotime, stats, onion, Rcpp, RcppParallel, utils
+Depends: R (>= 4.0)
+LinkingTo: Rcpp, RcppParallel, BH, RcppEigen
+SystemRequirements: GNU make
+Imports: deSolve, nanotime, stats, onion, Rcpp, RcppParallel, utils,
+        gsl, polynom, tools, httr
 Suggests: asteRiskData, knitr, formatR, webshot, BiocStyle, RUnit,
-        BiocGenerics, plotly, lazyeval, dplyr, ggmap, rmarkdown,
-        markdown
+        plotly, lazyeval, dplyr, ggmap, rmarkdown, markdown
 BugReports: https://github.com/Rafael-Ayala/asteRisk/issues
 Additional_repositories: https://rafael-ayala.github.io/drat/
 VignetteBuilder: knitr
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2023-01-14 10:44:33 UTC; rafael
-Author: Rafael Ayala [aut, cre] (<https://orcid.org/0000-0002-9332-4623>),
-  Daniel Ayala [aut] (<https://orcid.org/0000-0003-2095-1009>),
-  David Ruiz [aut] (<https://orcid.org/0000-0003-4460-5493>),
-  Lara Selles Vidal [aut] (<https://orcid.org/0000-0003-2537-6824>)
-Maintainer: Rafael Ayala <rafael.ayala@oist.jp>
+Packaged: 2025-08-20 05:43:29 UTC; rafael
+Author: Rafael Ayala [aut, cre] (ORCID:
+    <https://orcid.org/0000-0002-9332-4623>),
+  Daniel Ayala [aut] (ORCID: <https://orcid.org/0000-0003-2095-1009>),
+  David Ruiz [aut] (ORCID: <https://orcid.org/0000-0003-4460-5493>),
+  Lara Selles Vidal [aut] (ORCID:
+    <https://orcid.org/0000-0003-2537-6824>)
+Maintainer: Rafael Ayala <rafaelayalahernandez@gmail.com>
 Repository: CRAN
-Date/Publication: 2023-01-14 13:20:09 UTC
+Date/Publication: 2025-08-20 07:30:14 UTC

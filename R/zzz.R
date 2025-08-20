@@ -58,3 +58,5 @@ NRLMSISE00.env$s3tloc <- NULL
 NRLMSISE00.env$c3tloc <- NULL
 NRLMSISE00.env$apdf <- NULL
 NRLMSISE00.env$apt <- NULL
+
+loadedPlanetaryEphemerides <- new.env()

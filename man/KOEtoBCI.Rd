@@ -1,6 +1,6 @@
-\name{KOEtoECI}
-\alias{KOEtoECI}
-\title{Calculate ECI coordinates from Keplerian orbital elements
+\name{KOEtoBCI}
+\alias{KOEtoBCI}
+\title{Calculate BCI coordinates from Keplerian orbital elements
 }
 \description{
 Keplerian orbital elements are a set of six parameters used to described the
@@ -13,12 +13,17 @@ if perturbations were absent). These are called osculating orbital elements.
 A complete set of six Keplerian elements defines unequivocally the position
 and velocity of the satellite in a given frame of reference, and therefore can
 be used to calculate its cartesian coordinates. This function calculates the
-coordinates of a satellite in an ECI (Earth-centered inertial) frame of
-reference from a set of Keplerian orbital elements. The exact ECI frame of the
+coordinates of a satellite in an BCI (body-centered inertial) frame of
+reference from a set of Keplerian orbital elements. The exact BCI frame of the
 resulting coordinates is the same used to define the supplied orbital elements.
+
+By default, the function assumes the central body is the Earth and uses the GM
+of the Earth in the TDB frame. This can be changed by providing the GM of the
+desired central body in m^3/s^2.
 }
 \usage{
-KOEtoECI(a, e, i, M, omega, OMEGA, keplerAccuracy=10e-8, maxKeplerIterations=100)
+KOEtoBCI(a, e, i, M, omega, OMEGA, keplerAccuracy=10e-8, maxKeplerIterations=100, 
+centralBodyGM=GM_Earth_TDB)
 }
 \arguments{
   \item{a}{Semi-major axis of orbital ellipse in meters. 
@@ -37,7 +42,7 @@ KOEtoECI(a, e, i, M, omega, OMEGA, keplerAccuracy=10e-8, maxKeplerIterations=100
   }
   \item{omega}{Argument of perigee in radians. This is the angle between the 
   direction of the ascending node and the direction of the perigee (the point of 
-  the orbit at which the object is closest to the Earth).
+  the orbit at which the object is closest to the central body).
   }
   \item{OMEGA}{Right ascension of the ascending node in radians. This is the 
   angle between the direction of the ascending node (the point where the 
@@ -53,10 +58,13 @@ KOEtoECI(a, e, i, M, omega, OMEGA, keplerAccuracy=10e-8, maxKeplerIterations=100
   fixed-point integration of Kepler's equation will stop, even if convergence 
   according to the accuracy criterion has not been reached.
   }
+  \item{centralBodyGM}{GM of the central body in m^3/s^2. By default, the GM of
+  the Earth in the TDB frame is used.
+  }
 }
 \value{
 A list with two elements representing the position and velocity of the satellite
-in the same ECI (Earth Centered, Earth Fixed) frame of reference into which
+in the same BCI (body-centered inertial) frame of reference into which
 the provided orbital elements were defined. Position values are in m, and 
 velocity values are in m/s. Each of the two elements contains three values,
 corresponding to the X, Y and Z components of position and velocity in this 
@@ -92,5 +100,5 @@ a0 <- (mu^(1/3))/(n0^(2/3))
 
 # The ECI coordinates can then be calculated. In this case, they will be in TEME
 # frame, since the original orbital elements are derived from a TLE
-coordinates_ECI <- KOEtoECI(a0, e0, i0, M0, omega0, OMEGA0)
+coordinates_ECI <- KOEtoBCI(a0, e0, i0, M0, omega0, OMEGA0)
 }

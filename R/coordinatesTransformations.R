@@ -160,10 +160,83 @@ GCRFtoITRF <- function(position_GCRF, velocity_GCRF=c(0, 0, 0), dateTime) {
     ))
 }
 
-TEMEtoGCRF <- function(position_TEME, velocity_TEME=c(0,0,0), dateTime) {
-    hasData()
-    ecef_results <- TEMEtoITRF(position_TEME, velocity_TEME, dateTime)
-    GCRF_results <- ITRFtoGCRF(ecef_results$position, ecef_results$velocity, dateTime)
+TEMEtoGCRF <- function(position_TEME, velocity_TEME=c(0,0,0), dateTime=NULL, 
+                       SPICEAlgorithm=FALSE, ephemerisTime=NULL) {
+    if(SPICEAlgorithm) {
+        if(is.null(ephemerisTime)) {
+            if(!is.null(dateTime)) {
+                ephemerisTime <- as.numeric(as.POSIXct(dateTime, tz="UTC") - as.POSIXct("2000-01-01 12:00:00", tz="UTC"))*86400
+            } else {
+                stop("A valid UTC date-time string or ephemeris time in TDB seconds since
+                 J2000 must be specified")
+            }
+        }
+        precession76 <- IAU76_precession(ephemerisTime, inputInSeconds = TRUE)
+        nutation76 <- IAU76_nutation(ephemerisTime, inputInSeconds = TRUE)
+        eulerAnglesPrecession <- c(-precession76$z, precession76$theta, -precession76$zeta)
+        eulerAngleRatesPrecession <- c(-precession76$dZ, precession76$dTheta, -precession76$dZeta)
+        eulerAnglesNutation <- c(-nutation76$meanEclipticObliquity - nutation76$deltaEps, 
+                                 -nutation76$deltaPsi, 
+                                 nutation76$meanEclipticObliquity)
+        eulerAngleRatesNutation <- c(-nutation76$dMeanEclipticObliquity - nutation76$dDeltaEps, 
+                                     -nutation76$dDeltaPsi, 
+                                     nutation76$dMeanEclipticObliquity)
+        rotationMatrixTEMEToMEME <- eulerAnglesToDCM(rev(eulerAnglesNutation), "XZX")
+        angularVelocityVectorTEMEtoMEME <- eulerAngleRatesToAngularVelocity(rev(eulerAnglesNutation),
+                                                                            rev(eulerAngleRatesNutation),
+                                                                            "XZX")
+        angularVelocityTensorTEMEtoMEME <- matrix(c(
+            0, -angularVelocityVectorTEMEtoMEME[3], angularVelocityVectorTEMEtoMEME[2],
+            angularVelocityVectorTEMEtoMEME[3], 0, -angularVelocityVectorTEMEtoMEME[1],
+            -angularVelocityVectorTEMEtoMEME[2], angularVelocityVectorTEMEtoMEME[1], 0),
+            nrow=3, byrow=TRUE
+        )
+        zmeme <- t(rotationMatrixTEMEToMEME)[3, ]
+        zmemeRate <- t(angularVelocityTensorTEMEtoMEME %*% rotationMatrixTEMEToMEME)[3, ]
+        positionMEME <- drop(rotationMatrixTEMEToMEME %*% position_TEME)
+        velocityMEME <- drop(rotationMatrixTEMEToMEME %*% velocity_TEME) - drop(angularVelocityTensorTEMEtoMEME %*% positionMEME)
+        rotationMatrixMEMEtoGCRF <- eulerAnglesToDCM(rev(eulerAnglesPrecession), "ZYZ")
+        angularVelocityVectorMEMEtoGCRF <- eulerAngleRatesToAngularVelocity(rev(eulerAnglesPrecession),
+                                                                            rev(eulerAngleRatesPrecession),
+                                                                            "ZYZ")
+        angularVelocityTensorMEMEtoGCRF <- matrix(c(
+            0, -angularVelocityVectorMEMEtoGCRF[3], angularVelocityVectorMEMEtoGCRF[2],
+            angularVelocityVectorMEMEtoGCRF[3], 0, -angularVelocityVectorMEMEtoGCRF[1],
+            -angularVelocityVectorMEMEtoGCRF[2], angularVelocityVectorMEMEtoGCRF[1], 0),
+            nrow=3, byrow=TRUE
+        )
+        xj2000 <- t(rotationMatrixMEMEtoGCRF)[1, ]
+        # The following should maybe take transpose?
+        xj2000Rate <- t(angularVelocityTensorMEMEtoGCRF %*% rotationMatrixMEMEtoGCRF)[1, ]
+        zj2000 <- drop(rotationMatrixMEMEtoGCRF %*% zmeme)
+        zj2000Rate <- drop((angularVelocityTensorMEMEtoGCRF%*%rotationMatrixMEMEtoGCRF ) %*% zmeme + rotationMatrixMEMEtoGCRF %*% zmemeRate)
+        #stateTransformationTEMEtoGCRF <- zztwovxf(c())
+        positionGCRF <- drop(rotationMatrixMEMEtoGCRF %*% positionMEME)
+        velocityGCRF <- drop(rotationMatrixMEMEtoGCRF %*% velocityMEME) - drop(angularVelocityTensorMEMEtoGCRF %*% positionGCRF)
+        stateTransformationTEMEtoGCRF <- zztwovxf(c(zj2000, zj2000Rate), 3, c(xj2000, xj2000Rate), 1)
+        stateGCRF <- stateTransformationTEMEtoGCRF %*% c(position_TEME, velocity_TEME)
+        # TODO: this still does not match SPICE output EXACTLY, but quite close.
+        # Implement zztwovxf to obtain perfect match I guess...
+        GCRF_results <- list(position=stateGCRF[1:3],
+                             velocity=stateGCRF[4:6])
+    } else {
+        if(is.null(dateTime)) {
+            if(!is.null(ephemerisTime)) {
+                dateTime <- format(as.POSIXct(
+                    TDBSecondsToUTCSeconds_J2000(ephemerisTime),
+                    origin="2000-01-01 12:00:00",
+                    tz = "UTC"), 
+                    "%Y-%m-%d %H:%M:%OS6"
+                )
+            } else {
+                stop("A valid UTC date-time string or ephemeris time in TDB seconds since
+                 J2000 must be specified")
+            }
+        }
+        hasData()
+        ecef_results <- TEMEtoITRF(position_TEME, velocity_TEME, dateTime)
+        GCRF_results <- ITRFtoGCRF(ecef_results$position, ecef_results$velocity, dateTime)
+    }
     return(GCRF_results)
 }
 
@@ -179,7 +252,7 @@ LATLONtoGCRF <- function(position_LATLON, dateTime, degreesInput=TRUE) {
     return(ITRFtoGCRF(ECEFcoords, dateTime=dateTime))
 }
 
-KOEtoECI <- function(a, e, i, M, omega, OMEGA, keplerAccuracy=10e-8, maxKeplerIterations=100) {
+KOEtoBCI <- function(a, e, i, M, omega, OMEGA, keplerAccuracy=10e-8, maxKeplerIterations=100, centralBodyGM=GM_Earth_TDB) {
     # calculate true anomaly from mean anomaly
     convergence <- FALSE
     iterations <- 0
@@ -195,44 +268,44 @@ KOEtoECI <- function(a, e, i, M, omega, OMEGA, keplerAccuracy=10e-8, maxKeplerIt
     nu <- 2 * atan2(sqrt(1 + e) * sin(Eomega/2), sqrt(1 - e) * cos(Eomega/2))
     R <- a * (1 - e*cos(Eomega))
     orbital_position <- R * c(cos(nu), sin(nu), 0)
-    orbital_velocity <- (sqrt(GM_Earth_TDB * a)/R) * c(-sin(Eomega), sqrt(1-e^2) * cos(Eomega), 0)
-    eci_position <- c(orbital_position[1] * (cos(omega) * cos(OMEGA) - sin(omega) * cos(i) * sin(OMEGA)) -
+    orbital_velocity <- (sqrt(centralBodyGM * a)/R) * c(-sin(Eomega), sqrt(1-e^2) * cos(Eomega), 0)
+    bci_position <- c(orbital_position[1] * (cos(omega) * cos(OMEGA) - sin(omega) * cos(i) * sin(OMEGA)) -
                           orbital_position[2] * (sin(omega) * cos(OMEGA) + cos(omega) * cos(i) * sin(OMEGA)),
                       orbital_position[1] * (cos(omega) * sin(OMEGA) + sin(omega) * cos(i) * cos(OMEGA)) +
                           orbital_position[2] * (cos(omega) * cos(i) * cos(OMEGA) - sin(omega) * sin(OMEGA)),
                       orbital_position[1] * sin(omega) * sin(i) + orbital_position[2] * cos(omega) * sin(i))
-    eci_speed <- c(orbital_velocity[1] * (cos(omega) * cos(OMEGA) - sin(omega) * cos(i) * sin(OMEGA)) -
+    bci_speed <- c(orbital_velocity[1] * (cos(omega) * cos(OMEGA) - sin(omega) * cos(i) * sin(OMEGA)) -
                        orbital_velocity[2] * (sin(omega) * cos(OMEGA) + cos(omega) * cos(i) * sin(OMEGA)),
                    orbital_velocity[1] * (cos(omega) * sin(OMEGA) + sin(omega) * cos(i) * cos(OMEGA)) +
                        orbital_velocity[2] * (cos(omega) * cos(i) * cos(OMEGA) - sin(omega) * sin(OMEGA)),
                    orbital_velocity[1] * sin(omega) * sin(i) + orbital_velocity[2] * cos(omega) * sin(i))
     return(list(
-        position=eci_position,
-        velocity=eci_speed
+        position=bci_position,
+        velocity=bci_speed
     ))
 }
 
 
-ECItoKOE <- function(position_ECI, velocity_ECI) {
+BCItoKOE <- function(position_BCI, velocity_BCI, centralBodyGM = GM_Earth_TDB) {
     # calculate orbital momentum
     eps <- .Machine$double.eps
-    h <- vectorCrossProduct3D(position_ECI, velocity_ECI)
-    e_vector <- vectorCrossProduct3D(velocity_ECI, h)/GM_Earth_TDB - position_ECI/sqrt(sum(position_ECI^2))
+    h <- vectorCrossProduct3D(position_BCI, velocity_BCI)
+    e_vector <- vectorCrossProduct3D(velocity_BCI, h)/centralBodyGM - position_BCI/sqrt(sum(position_BCI^2))
     # This is equivalent to the following expression by Vallado 2007
     # e_vector2 <- ((sum(velocity_ECI^2) - GM_Earth_TDB/sqrt(sum(position_ECI^2)))*position_ECI - 
     # (position_ECI%*%velocity_ECI)*velocity_ECI )/GM_Earth_TDB
     e <- sqrt(sum(e_vector^2))
     node_vector <- c(-h[2], h[1], 0)
-    E <- sum(velocity_ECI^2)/2 - GM_Earth_TDB/sqrt(sum(position_ECI^2))
+    E <- sum(velocity_BCI^2)/2 - centralBodyGM/sqrt(sum(position_BCI^2))
     if(abs(E) > eps) {
-        a <- -GM_Earth_TDB/(2*E)
+        a <- -centralBodyGM/(2*E)
         # p <- a*(1-e^2)
     } else {
         # p <- sum(h^2)/GM_Earth_TDB
         a <- Inf
     }
     # Vallado´s implementation defines p always as follows
-    p <- sum(h^2)/GM_Earth_TDB
+    p <- sum(h^2)/centralBodyGM
     i <- acos(h[3]/sqrt(sum(h^2)))
     # determine special orbit cases
     orbitType <- "ei" # general case: non-circular (elliptical) orbit with inclination
@@ -266,8 +339,8 @@ ECItoKOE <- function(position_ECI, velocity_ECI) {
         omega <- NaN
     }
     if(orbitType %in% c("ei", "ee")) {
-        nu <- acos((e_vector%*%position_ECI)/(e*sqrt(sum(position_ECI^2))))
-        if(position_ECI %*% velocity_ECI < 0) {
+        nu <- acos((e_vector%*%position_BCI)/(e*sqrt(sum(position_BCI^2))))
+        if(position_BCI %*% velocity_BCI < 0) {
             nu <- 2*pi - nu
         }
     } else {
@@ -276,8 +349,8 @@ ECItoKOE <- function(position_ECI, velocity_ECI) {
     # non-standard orbital parameters
     # argument of latitude - for non-equatorial orbits
     if(orbitType %in% c("ci", "ei")) {
-        arglat <- acos((node_vector%*%position_ECI)/(sqrt(sum(node_vector^2))*sqrt(sum(position_ECI^2))))
-        if(position_ECI[3] < 0) {
+        arglat <- acos((node_vector%*%position_BCI)/(sqrt(sum(node_vector^2))*sqrt(sum(position_BCI^2))))
+        if(position_BCI[3] < 0) {
             arglat <- 2*pi - arglat
         }
     } else {
@@ -300,13 +373,13 @@ ECItoKOE <- function(position_ECI, velocity_ECI) {
         lonPer <- NaN
     }
     # true longitude - circular equatorial orbits
-    if((sqrt(sum(position_ECI^2)) > eps) & orbitType == "ce") {
-        cosTrueLon <- position_ECI[1] / sqrt(sum(position_ECI))
+    if((sqrt(sum(position_BCI^2)) > eps) && orbitType == "ce") {
+        cosTrueLon <- position_BCI[1] / sqrt(sum(position_BCI))
         if(abs(cosTrueLon) > 1) {
             cosTrueLon <- sign(cosTrueLon)
         }
         trueLon <- acos(cosTrueLon)
-        if(position_ECI[2] < 0) {
+        if(position_BCI[2] < 0) {
             trueLon <- 2*pi - trueLon
         }
         if(i > 0.5*pi) {
@@ -354,6 +427,48 @@ ECItoKOE <- function(position_ECI, velocity_ECI) {
         argumentLatitude = as.vector(arglat),
         longitudePerigee = lonPer,
         trueLongitude = trueLon
+    ))
+}
+
+BCItoPQW <- function(position_BCI, velocity_BCI, centralBodyGM=GM_Earth_TDB) {
+    orbital_elements <- BCItoKOE(position_BCI, velocity_BCI, centralBodyGM)
+    OMEGA <- orbital_elements$longitudeAscendingNode
+    i <- orbital_elements$inclination
+    omega <- orbital_elements$argumentPerigee
+    rotationBCItoPQW <- matrix(c(cos(OMEGA)*cos(omega) - sin(OMEGA)*cos(i)*sin(omega),
+                                 sin(OMEGA)*cos(omega) + cos(OMEGA)*cos(i)*sin(omega),
+                                 sin(i)*sin(omega),
+                                 -cos(OMEGA)*sin(omega) - sin(OMEGA)*cos(i)*cos(omega),
+                                 -sin(OMEGA)*sin(omega) + cos(OMEGA)*cos(i)*cos(omega),
+                                 sin(i)*cos(omega),
+                                 sin(OMEGA)*sin(i),
+                                 -cos(OMEGA)*sin(i),
+                                 cos(i)),
+                               nrow=3, ncol=3, byrow=TRUE)
+    position_PQW <- as.vector(rotationBCItoPQW %*% position_BCI)
+    velocity_PQW <- as.vector(rotationBCItoPQW %*% velocity_BCI)
+    return(list(
+        position=position_PQW,
+        velocity=velocity_PQW
+    ))
+}
+
+PQWtoBCI <- function(position_PQW, velocity_PQW, centralBodyGM=GM_Earth_TDB) {
+# this function will convert coordinates in perifocal frame back into body-centered inertial frame of reference
+    r <- sqrt(sum(position_PQW^2))
+    v <- sqrt(sum(velocity_PQW^2))
+    h <- vectorCrossProduct3D(position_PQW, velocity_PQW)
+    e <- sqrt(1 + (v^2 - centralBodyGM/r) * (sum(position_PQW^2)/centralBodyGM))
+    a <- h^2/centralBodyGM/(1 - e^2)
+    i <- acos(h[3]/sqrt(sum(h^2)))
+    OMEGA <- atan2(h[1], -h[2])
+    omega <- atan2(position_PQW[3], h[3])
+    nu <- atan2(position_PQW[2], position_PQW[1])
+    position_BCI <- a*(1 - e^2)/(1 + e*cos(nu)) * c(cos(nu), sin(nu), 0)
+    velocity_BCI <- (centralBodyGM/h) * c(-sin(nu), e + cos(nu), 0)
+    return(list(
+        position=position_BCI,
+        velocity=velocity_BCI
     ))
 }
 

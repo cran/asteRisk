@@ -31,9 +31,9 @@ of object (note that some elements are not mandatory and therefore might not be
 present in all OEM files; in these cases, their value is set to NULL):
   \item{objectName }{Name of the object}
   \item{objectID }{Object identifier for the object. Frequently, although not
-  always, the identifier has the format YYYY-NNNP{PP}, where YYYY is the year
+  always, the identifier has the format YYYY-NNNP(PP), where YYYY is the year
   of launch, NNN is the three-digit serial number specifying the launch number
-  during year YYYY and P{PP} is a part specifier comprising 1 to 3 capital letters
+  during year YYYY and P(PP) is a part specifier comprising 1 to 3 capital letters
   that indicate the part of the object put into space during the launch.}
   \item{referenceFrame }{Frame of reference in which ephemerides are provided.}
   \item{refFrameEpoch }{Epoch for the frame of reference, for cases where it is
@@ -70,7 +70,7 @@ present in all OEM files; in these cases, their value is set to NULL):
   \item{covarianceMatrixes }{List where each element is a 3-element list that
   provides a covariance matrix for this data block. Each of the 3-element lists
   corresponding to a covariance matrix contains the following elements:
-  \itemize{
+  \describe{
     \item{epoch }{Epoch of the navigation solution related to this covariance
     matrix.}
     \item{referenceFrame }{Reference frame for the covariance matrix. Frequently
