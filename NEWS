@@ -1,3 +1,6 @@
+Changes in version 1.4.5 (2025-11-02)
++ Fixed bug in Lambert solver initial guess of independent variable
+
 Changes in version 1.4.4 (2025-07-24)
 + Added support to read binary SPK and generic DAF files
 + Added support to read GPS and GLONASS RINEX navigation files of version 3

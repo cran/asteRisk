@@ -445,15 +445,15 @@ initialGuessX <- function(tau, sigma, N, lowPath) {
             x0 <- 2.5 * tau1/tau * (tau1 - tau)/(1 - sigma^5) + 1
         } else {
             #x0 <- (tau0/tau)^(log2(tau1/tau0)) - 1
-            x0 <- exp(log(tau/tau0)/log(tau0/tau1) * log(2)) - 1
+            x0 <- exp(log(tau/tau0)/log(tau1/tau0) * log(2)) - 1
         }
     } else {
-        x01 <- (((N*pi + pi) / (8*tau))^(2/3) - 1) / (((N*pi + pi) / (8*tau)) ^ (2/3) + 1)
+        x0l <- (((N*pi + pi) / (8*tau))^(2/3) - 1) / (((N*pi + pi) / (8*tau)) ^ (2/3) + 1)
         x0r <- (((8*tau) / (N*pi))^(2/3) - 1) / (((8*tau) / (N*pi))^(2/3) + 1)
         if(lowPath) {
-            x0 <- max(x01, x0r)
+            x0 <- max(x0l, x0r)
         } else {
-            x0 <- min(x01, x0r)
+            x0 <- min(x0l, x0r)
         }
     }
     return(x0)

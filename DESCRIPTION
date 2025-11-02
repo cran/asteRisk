@@ -1,11 +1,12 @@
 Package: asteRisk
 Type: Package
 Title: Computation of Satellite Position
-Version: 1.4.4
+Version: 1.4.5
 Authors@R: c(
     person("Rafael", "Ayala", email = "rafaelayalahernandez@gmail.com", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9332-4623")),
     person("Daniel", "Ayala", email = "dayala1@us.es", role = "aut", comment = c(ORCID = "0000-0003-2095-1009")),
     person("David", "Ruiz", email = "druiz@us.es", role = "aut", comment = c(ORCID = "0000-0003-4460-5493")),
+    person("Pablo", "Hernandez", email = "pabherser@alum.us.es", role="aut", comment = c(ORCID = "0009-0000-9279-6744")),
     person("Lara", "Selles Vidal", email = "lara.selles@oist.jp", role = "aut", comment = c(ORCID = "0000-0003-2537-6824")))
 Description: Provides basic functionalities to calculate the position of
     satellites given a known state vector. The package includes implementations
@@ -41,13 +42,14 @@ Additional_repositories: https://rafael-ayala.github.io/drat/
 VignetteBuilder: knitr
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2025-08-20 05:43:29 UTC; rafael
+Maintainer: Rafael Ayala <rafaelayalahernandez@gmail.com>
+Repository: CRAN
+Packaged: 2025-11-02 01:45:57 UTC; rafael
 Author: Rafael Ayala [aut, cre] (ORCID:
     <https://orcid.org/0000-0002-9332-4623>),
   Daniel Ayala [aut] (ORCID: <https://orcid.org/0000-0003-2095-1009>),
   David Ruiz [aut] (ORCID: <https://orcid.org/0000-0003-4460-5493>),
+  Pablo Hernandez [aut] (ORCID: <https://orcid.org/0009-0000-9279-6744>),
   Lara Selles Vidal [aut] (ORCID:
     <https://orcid.org/0000-0003-2537-6824>)
-Maintainer: Rafael Ayala <rafaelayalahernandez@gmail.com>
-Repository: CRAN
-Date/Publication: 2025-08-20 07:30:14 UTC
+Date/Publication: 2025-11-02 06:10:50 UTC

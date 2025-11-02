@@ -1,6 +1,6 @@
-863c590b24c4328f9b8816d1ca9c03d5 *DESCRIPTION
+738e9d43556a290edf18ad0aa95d54b2 *DESCRIPTION
 8d41409c507a62a399080e851d723b1c *NAMESPACE
-a71dadd92179f141bc8071a0349b0390 *NEWS
+1a54aa5f04665b85451a757ace783f2c *NEWS
 2de317cc837555208297b67818cecadb *R/RcppExports.R
 9d5adfbdba5e86f8e8497ff426dd9547 *R/SOFAfunctions.R
 cd50889b1d1935a1719d02c7699c51f1 *R/auxiliaryFunctions.R
@@ -17,7 +17,7 @@ e66a86c99fee10f71c36414cafcafba6 *R/hpop.R
 f5bb71784b39f02fa490c08f90d7d4ca *R/models.R
 cd6dab3458c53f370d90915660cbc0d1 *R/naif_codes.R
 96abc469d319d112d06c340d0f862349 *R/nrlmsise00_model.R
-3821522067e27f2ea9c1e5137fc56063 *R/orbitalManeuvers.R
+e0892e55ddaf51964aefd1aa949af3fe *R/orbitalManeuvers.R
 06fba52d056b21a32af9c20accdf3dc4 *R/timeTransformations.R
 c320c303e2d9af0342db914d2953de97 *R/utils.R
 6b7f627d69ba0a6cdb466376c33a3178 *R/zzz.R
@@ -32,7 +32,7 @@ a78a460de1b9997229cb16ab0f748fac *inst/RJournalExamples/verificationTLEs.tle
 a78a460de1b9997229cb16ab0f748fac *inst/SGP4-VER.TLE
 2dfa61804ada55905bcf81c9aa14d6c3 *inst/doc/asteRisk.R
 6789bc131a2edbd07849f16095b1c49a *inst/doc/asteRisk.Rmd
-3fc9a4d5ae1d14d3d4c5de55371fce92 *inst/doc/asteRisk.html
+ff67902ff2476b703e2f190c133e6e19 *inst/doc/asteRisk.html
 384569ce8b6721b10e85d3d5cebb59a0 *inst/spk14b_ex1.bsp
 e3f79c26f646b8f56fb4a92227c0f5f1 *inst/spkw02_ex1.bsp
 46ef0d0e23cffd7701e61b70a00c5997 *inst/spkw03_ex1.bsp
